@@ -1,5 +1,4 @@
 # Getting Started with Kubernetes and Vagrant
--
 
 ### ***Stable Versions***
 
@@ -76,15 +75,16 @@ Change this line to be:
 RUNTIME_CONFIG="api/v1=true,config=extensions/v1beta1/daemonsets=true,extensions/v1beta1/deployments=true,extensions/v1beta1/jobs=true,extensions/v1beta1/ingress=true"
 ```
 
-#####Testing
+-
+
+####**Testing:**
 
 - Remove old ```~/.kube/config``` file 
 
 ####**Todo List**:
-- Holder 1
-- Holder 2
+- Add documentation for Kubernetes Alpha releases.
 
-###***Notes:***
+###**Notes:**
 > Remove this section when guide is finished.
 
 
@@ -93,23 +93,4 @@ RUNTIME_CONFIG="api/v1=true,config=extensions/v1beta1/daemonsets=true,extensions
 - Should generate ```~/.kube/config``` file automatically on vagrant up
 - Should remove old ```~/.kube/config``` file on vagrant destroy
 - Preferably 2 total commands for user to run
-
-
-<!--- End of file 
-
-TODO
-
-###***Alpha Versions***
-
-**WARNING:** 
->This is currently an alpha release and shouldn't be used in a production environment!  
-Alpha releases can be found on the Kubernetes github page [here](https://github.com/kubernetes/kubernetes/releases)
-
-
-####**Prerequisites:** 
-> Install latest version >= 1.6.2 of Vagrant from [here](www.vagrantup.com/downloads.html)  
-> Install the latest version of Virtual Box from [here](https://www.virtualbox.org/wiki/Downloads)
-
-####**Setup:**
-
--->
+- Comments don't work on github
