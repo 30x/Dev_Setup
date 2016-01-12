@@ -60,15 +60,17 @@ At this point you should have a fully functioning Kubernetes cluster accesible t
 #####Enable Beta Features
 
 To change the default vagrant configuration you must modify your config-default.sh file. This is located under the following path: 
-```kubernetes/cluster/vagrant/config-default.sh```
+
+`kubernetes/cluster/vagrant/config-default.sh`
 
 To modify this file first copy it into a new file to preserve the original and ensure Kubernetes looks for your copy. 
+
 ```
 $ cp config-default.sh config-mine.sh
 $ export KUBE_CONFIG_FILE=config-mine.sh
 ```
 
-To enable beta features change the ```RUNTIME_CONFIG``` value. This should be line 93 in the default file. 
+To enable beta features change the `RUNTIME_CONFIG` value. This should be line 93 in the default file. 
 Change this line to be:
 
 ```
@@ -85,8 +87,8 @@ RUNTIME_CONFIG="api/v1=true,config=extensions/v1beta1/daemonsets=true,extensions
 - Add documentation for Kubernetes Alpha releases.
 
 ###**Notes:**
-> Remove this section when guide is finished.
 
+> Remove this section when guide is finished.
 
 - Using Vagrantfile for convenient setup
 - Using Coreos as base OS
