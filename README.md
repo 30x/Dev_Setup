@@ -13,9 +13,9 @@ $ git clone
 $ vagrant up
 $ ./ctl-setup
 ```
-These commands will spin up a Kubernetes cluster. 
+These commands will spin up a Kubernetes cluster. The default configuraton has one controller node, one etcd node and three worker nodes. This configuration can be modified by editing the config.rb file and running `vagrant up`.
 
-You should also be see the following directory structure:
+You should also see the following directory structure:
 
 ```
 Dev_Setup
@@ -37,8 +37,10 @@ You can access these nodes directly through ssh.
 
 ```
 $ vagrant ssh c1
+$ vagrant ssh e1
 $ vagrant ssh w1
 $ vagrant ssh w2
+$ vagrant ssh w3
 .
 .
 .
@@ -46,7 +48,7 @@ $ vagrant ssh w2
 
 ####**Kubectl:**
 
-```kubectl``` is the primary command you will use to interact with your Kubernetes cluster. You should ensure that this is command is in your path. To do this run the following commands:
+`kubectl` is the primary command you will use to interact with your Kubernetes cluster. You should ensure that this is command is in your path. To do this run the following commands:
 
 ```
 $ curl -O https://storage.googleapis.com/kubernetes-release/release/v1.1.4/bin/darwin/amd64/kubectl
