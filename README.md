@@ -62,6 +62,3 @@ At this point you should have a fully functioning Kubernetes cluster accesible t
 - https://github.com/coreos/coreos-kubernetes
 - http://kubernetes.io/v1.1/docs/user-guide/kubeconfig-file.html
 - http://kubernetes.io/v1.1/docs/user-guide/accessing-the-cluster.html
-
-###**TROUBLESHOOTING**:
-- `controller-install.sh` isnt running on controller node.
