@@ -11,3 +11,6 @@ until $(kubectl cluster-info &> /dev/null); do
 done
 
 echo "Kubernetes cluster is up."
+
+#TODO: Going to force "kubectl proxy --port=8080 &" to be run at start so that we can hit the cluster
+kubectl proxy --port=8080 & 
