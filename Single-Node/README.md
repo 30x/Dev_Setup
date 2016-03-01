@@ -10,7 +10,7 @@ From your development directory run the following commands.
 
 ```sh
 git clone git@github.com:30x/Dev_Setup.git
-cd Single-Node
+cd Dev_Setup/Single-Node
 vagrant up
 ./ctl-setup
 ```
