@@ -2,7 +2,7 @@
 
 
 ####**Prerequisites:** 
-> Install latest version >= 1.6.2 of Vagrant from [here](www.vagrantup.com/downloads.html)  
+> Install latest version >= 1.6.2 of Vagrant from [here](https://www.vagrantup.com/downloads.html)  
 > Install the latest version of Virtual Box from [here](https://www.virtualbox.org/wiki/Downloads)  
 
 ####**Setup:**
