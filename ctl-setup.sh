@@ -13,7 +13,6 @@ done
 echo "Kubernetes cluster is up."
 
 #Going to force "kubectl proxy --port=8080 &" to be run at start so that we can hit the cluster
-kubectl proxy --port=8080 & 
+kubectl proxy --port=8080 &
 
 #Export DOCKER_HOST so that we can access remote docker
-#export DOCKER_HOST="tcp://172.17.4.99:2375"
