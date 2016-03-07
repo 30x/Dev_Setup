@@ -3,7 +3,7 @@
 
 ####**Prerequisites:** 
 > Install latest version >= 1.6.2 of Vagrant from [here](https://www.vagrantup.com/downloads.html)  
-> Install Vagrant Triggers from a terminal with `vagrant plugin install vagrant-triggers`
+> Install Vagrant Triggers from a terminal with `vagrant plugin install vagrant-triggers`  
 > Install the latest version of Virtual Box from [here](https://www.virtualbox.org/wiki/Downloads)  
 
 ####**Setup:**
