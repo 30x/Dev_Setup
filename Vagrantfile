@@ -59,7 +59,19 @@ Vagrant.configure("2") do |config|
   config.vm.provision :file, :source => SSL_TARBALL_PATH, :destination => "/tmp/ssl.tar"
   config.vm.provision :shell, :inline => "mkdir -p /etc/kubernetes/ssl && tar -C /etc/kubernetes/ssl -xf /tmp/ssl.tar", :privileged => true
 
+  # This is the spot where we are calling the user-data file
   config.vm.provision :file, :source => USER_DATA_PATH, :destination => "/tmp/vagrantfile-user-data"
   config.vm.provision :shell, :inline => "mv /tmp/vagrantfile-user-data /var/lib/coreos-vagrant/", :privileged => true
+
+  # Add Vagrant Triggers here
+  
+  config.trigger.after :destroy do
+    run "rm -rf ssl"
+    run "pkill kubectl proxy --port=8080"
+  end
+
+  config.trigger.after :up do
+    run "./ctl-setup.sh"
+  end
 
 end

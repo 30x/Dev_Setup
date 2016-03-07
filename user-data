@@ -2,10 +2,10 @@
 set -e
 
 # List of etcd servers (http://ip:port), comma separated
-export ETCD_ENDPOINTS=
+export ETCD_ENDPOINTS="http://127.0.0.1:2379"
 
 # Specify the version (vX.Y.Z) of Kubernetes assets to deploy
-export K8S_VER=v1.1.2
+export K8S_VER=v1.1.8
 
 # The CIDR network to use for pod IPs.
 # Each pod launched in the cluster will be assigned an IP out of this range.
@@ -27,17 +27,10 @@ export K8S_SERVICE_IP=10.3.0.1
 # This same IP must be configured on all worker nodes to enable DNS service discovery.
 export DNS_SERVICE_IP=10.3.0.10
 
-# The above settings can optionally be overridden using an environment file:
-ENV_FILE=/run/coreos-kubernetes/options.env
-
 # -------------
 
 function init_config {
     local REQUIRED=('ADVERTISE_IP' 'POD_NETWORK' 'ETCD_ENDPOINTS' 'SERVICE_IP_RANGE' 'K8S_SERVICE_IP' 'DNS_SERVICE_IP' 'K8S_VER' )
-
-    if [ -f $ENV_FILE ]; then
-        export $(cat $ENV_FILE | xargs)
-    fi
 
     if [ -z $ADVERTISE_IP ]; then
         export ADVERTISE_IP=$(awk -F= '/COREOS_PUBLIC_IPV4/ {print $2}' /etc/environment)
@@ -84,7 +77,7 @@ function init_templates {
 ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
 ExecStart=/usr/bin/kubelet \
   --api_servers=http://127.0.0.1:8080 \
-  --register-node=false \
+  --register-node=true \
   --allow-privileged=true \
   --config=/etc/kubernetes/manifests \
   --hostname-override=${ADVERTISE_IP} \
@@ -185,61 +178,7 @@ spec:
 EOF
     }
 
-    local TEMPLATE=/etc/kubernetes/manifests/kube-podmaster.yaml
-    [ -f $TEMPLATE ] || {
-        echo "TEMPLATE: $TEMPLATE"
-        mkdir -p $(dirname $TEMPLATE)
-        cat << EOF > $TEMPLATE
-apiVersion: v1
-kind: Pod
-metadata:
-  name: kube-podmaster
-  namespace: kube-system
-spec:
-  hostNetwork: true
-  containers:
-  - name: scheduler-elector
-    image: gcr.io/google_containers/podmaster:1.1
-    command:
-    - /podmaster
-    - --etcd-servers=${ETCD_ENDPOINTS}
-    - --key=scheduler
-    - --whoami=${ADVERTISE_IP}
-    - --source-file=/src/manifests/kube-scheduler.yaml
-    - --dest-file=/dst/manifests/kube-scheduler.yaml
-    volumeMounts:
-    - mountPath: /src/manifests
-      name: manifest-src
-      readOnly: true
-    - mountPath: /dst/manifests
-      name: manifest-dst
-  - name: controller-manager-elector
-    image: gcr.io/google_containers/podmaster:1.1
-    command:
-    - /podmaster
-    - --etcd-servers=${ETCD_ENDPOINTS}
-    - --key=controller
-    - --whoami=${ADVERTISE_IP}
-    - --source-file=/src/manifests/kube-controller-manager.yaml
-    - --dest-file=/dst/manifests/kube-controller-manager.yaml
-    terminationMessagePath: /dev/termination-log
-    volumeMounts:
-    - mountPath: /src/manifests
-      name: manifest-src
-      readOnly: true
-    - mountPath: /dst/manifests
-      name: manifest-dst
-  volumes:
-  - hostPath:
-      path: /srv/kubernetes/manifests
-    name: manifest-src
-  - hostPath:
-      path: /etc/kubernetes/manifests
-    name: manifest-dst
-EOF
-    }
-
-    local TEMPLATE=/srv/kubernetes/manifests/kube-controller-manager.yaml
+    local TEMPLATE=/etc/kubernetes/manifests/kube-controller-manager.yaml
     [ -f $TEMPLATE ] || {
         echo "TEMPLATE: $TEMPLATE"
         mkdir -p $(dirname $TEMPLATE)
@@ -284,7 +223,7 @@ spec:
 EOF
     }
 
-    local TEMPLATE=/srv/kubernetes/manifests/kube-scheduler.yaml
+    local TEMPLATE=/etc/kubernetes/manifests/kube-scheduler.yaml
     [ -f $TEMPLATE ] || {
         echo "TEMPLATE: $TEMPLATE"
         mkdir -p $(dirname $TEMPLATE)
@@ -521,6 +460,215 @@ EOF
 EOF
     }
 
+    # For single node, fix memory at 212Mi. Multiple node clusters
+    # should scale up their memory by about 12Mi per node
+    local TEMPLATE=/srv/kubernetes/manifests/heapster-rc.json
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+{
+  "apiVersion": "v1",
+  "kind": "ReplicationController",
+  "metadata": {
+    "name": "heapster-v10",
+    "namespace": "kube-system",
+    "labels": {
+      "k8s-app": "heapster",
+      "version": "v10",
+      "kubernetes.io/cluster-service": "true"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "k8s-app": "heapster",
+      "version": "v10"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "k8s-app": "heapster",
+          "version": "v10",
+          "kubernetes.io/cluster-service": "true"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "gcr.io/google_containers/heapster:v0.18.2",
+            "name": "heapster",
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "212Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "212Mi"
+              }
+            },
+            "command": [
+              "/heapster",
+              "--source=kubernetes:''",
+              "--sink=influxdb:http://monitoring-influxdb:8086",
+              "--stats_resolution=30s",
+              "--sink_frequency=1m"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+    }
+
+    local TEMPLATE=/srv/kubernetes/manifests/influxdb-rc.json
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+{
+  "apiVersion": "v1",
+  "kind": "ReplicationController",
+  "metadata": {
+    "name": "monitoring-influxdb-v2",
+    "namespace": "kube-system",
+    "labels": {
+      "k8s-app": "influxdb",
+      "version": "v2",
+      "kubernetes.io/cluster-service": "true"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "k8s-app": "influxdb",
+      "version": "v2"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "k8s-app": "influxdb",
+          "version": "v2",
+          "kubernetes.io/cluster-service": "true"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "gcr.io/google_containers/heapster_influxdb:v0.4",
+            "name": "influxdb",
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "200Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "200Mi"
+              }
+            },
+            "ports": [
+              {
+                "containerPort": 8083,
+                "hostPort": 8083
+              },
+              {
+                "containerPort": 8086,
+                "hostPort": 8086
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "influxdb-persistent-storage",
+                "mountPath": "/data"
+              }
+            ]
+          }
+        ],
+        "volumes": [
+          {
+            "name": "influxdb-persistent-storage",
+            "emptyDir": {}
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+    }
+
+    local TEMPLATE=/srv/kubernetes/manifests/heapster-svc.json
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "heapster",
+    "namespace": "kube-system",
+    "labels": {
+      "kubernetes.io/cluster-service": "true",
+      "kubernetes.io/name": "Heapster"
+    }
+  },
+  "spec": {
+    "ports": [
+      {
+        "port": 80,
+        "targetPort": 8082
+      }
+    ],
+    "selector": {
+      "k8s-app": "heapster"
+    }
+  }
+}
+EOF
+    }
+
+    local TEMPLATE=/srv/kubernetes/manifests/influxdb-svc.json
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "monitoring-influxdb",
+    "namespace": "kube-system",
+    "labels": {
+      "kubernetes.io/cluster-service": "true",
+      "kubernetes.io/name": "InfluxDB"
+    }
+  },
+  "spec": {
+    "ports": [
+      {
+        "name": "http",
+        "port": 8083,
+        "targetPort": 8083
+      },
+      {
+        "name": "api",
+        "port": 8086,
+        "targetPort": 8086
+      }
+    ],
+    "selector": {
+      "k8s-app": "influxdb"
+    }
+  }
+}
+EOF
+    }
+
     local TEMPLATE=/etc/flannel/options.env
     [ -f $TEMPLATE ] || {
         echo "TEMPLATE: $TEMPLATE"
@@ -552,6 +700,120 @@ After=flanneld.service
 EOF
     }
 
+#Add in docker stuff
+    local TEMPLATE=/etc/systemd/system/docker-tcp.socket
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+[Unit]
+Description=Docker Socket for the API
+
+[Socket]
+ListenStream=2375
+BindIPv6Only=both
+Service=docker.service
+
+[Install]
+WantedBy=sockets.target
+EOF
+    }
+
+#Add in kube-ui templates
+    local TEMPLATE=/srv/kubernetes/manifests/kubeui-rc.json
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+{
+  "apiVersion": "v1",
+  "kind": "ReplicationController",
+  "metadata": {
+    "labels": {
+      "k8s-app": "kube-ui",
+      "kubernetes.io/cluster-service": "true",
+      "version": "v4"
+    },
+    "name": "kube-ui-v4",
+    "namespace": "kube-system"
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "k8s-app": "kube-ui",
+      "version": "v4"
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "k8s-app": "kube-ui",
+          "kubernetes.io/cluster-service": "true",
+          "version": "v4"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "gcr.io/google_containers/kube-ui:v4",
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": 8080
+              },
+              "initialDelaySeconds": 30,
+              "timeoutSeconds": 5
+            },
+            "name": "kube-ui",
+            "ports": [
+              {
+                "containerPort": 8080
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "50Mi"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+EOF
+    }
+    local TEMPLATE=/srv/kubernetes/manifests/kubeui-svc.json
+    [ -f $TEMPLATE ] || {
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "kube-ui",
+    "namespace": "kube-system",
+    "labels": {
+      "k8s-app": "kube-ui",
+      "kubernetes.io/cluster-service": "true",
+      "kubernetes.io/name": "KubeUI"
+    }
+  },
+  "spec": {
+    "selector": {
+      "k8s-app": "kube-ui"
+    },
+    "ports": [
+      {
+        "port": 80,
+        "targetPort": 8080
+      }
+    ]
+  }
+}
+EOF
+    }
 }
 
 function start_addons {
@@ -566,16 +828,38 @@ function start_addons {
     echo "K8S: DNS addon"
     curl --silent -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-rc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
     curl --silent -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
+    curl --silent -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-rc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
+    curl --silent -XPOST -d"$(cat /srv/kubernetes/manifests/influxdb-rc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
+    curl --silent -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
+    curl --silent -XPOST -d"$(cat /srv/kubernetes/manifests/influxdb-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
+    echo "K8s: UI addon"
+    curl --silent -XPOST -d"$(cat /srv/kubernetes/manifests/kubeui-rc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
+    curl --silent -XPOST -d"$(cat /srv/kubernetes/manifests/kubeui-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
+}
+
+#Testing 
+function modifications {
+    echo "Initializing local docker registry"
+    docker run -d -p 5000:5000 --restart=always --name registry registry:2
 }
 
 init_config
 init_templates
+systemctl enable etcd2; systemctl start etcd2
 
 init_flannel
 
 systemctl stop update-engine; systemctl mask update-engine
 
+#This enables us to remotely connect to the docker client over tcp
+systemctl enable docker-tcp.socket
+systemctl start docker-tcp.socket
+
 systemctl daemon-reload
 systemctl enable kubelet; systemctl start kubelet
 start_addons
+
+#Testing
+modifications
+
 echo "DONE"
