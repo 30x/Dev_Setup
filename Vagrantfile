@@ -20,10 +20,11 @@ system("./scripts/init-ssl ssl admin kube-admin") or abort("failed generating ad
 Vagrant.configure("2") do |config|
   # always use Vagrant's insecure key
   config.ssh.insert_key = false
-  
+
   #Testing Shared Storage
   config.vm.synced_folder "shared", "/shared", type: "nfs"
   
+
   config.vm.box = "coreos-alpha"
   config.vm.box_version = ">= 766.0.0"
   config.vm.box_url = "http://alpha.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json"
@@ -63,6 +64,8 @@ Vagrant.configure("2") do |config|
   config.vm.provision :file, :source => USER_DATA_PATH, :destination => "/tmp/vagrantfile-user-data"
   config.vm.provision :shell, :inline => "mv /tmp/vagrantfile-user-data /var/lib/coreos-vagrant/", :privileged => true
 
+  #Port forwarding for docker registry
+  config.vm.network "forwarded_port", guest: 5000, host: 5000, protocol: "tcp", auto_correct: true
   # Add Vagrant Triggers here
   
   config.trigger.after :destroy do
