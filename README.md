@@ -40,13 +40,13 @@ wget https://storage.googleapis.com/kubernetes-release/release/v1.2.0/bin/darwin
 chmod 755 kubectl
 mv kubectl /usr/local/bin
 ```  
-At this point you should have a fully functioning Kubernetes cluster accesible through the ```kubectl``` command. 
+At this point you should have a fully functioning Kubernetes cluster accesible through the ```kubectl``` command.
 
 ###**Docker:**
 
 The VMs docker port is exposed over tcp by default. To remotely access it simply set your `DOCKER_HOST` environment variable with the following command.
 
 ```sh
-export DOCKER_HOST=172.17.4.99:2375
+source docker-setup.sh
 ```
 If you plan to use this VM as your default development environment it is recommended that you add the above command to your `.bash_profile` or `.zshrc`.
