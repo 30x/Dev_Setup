@@ -6,7 +6,7 @@ export ETCD_ENDPOINTS="http://127.0.0.1:2379"
 
 # Specify the version (vX.Y.Z) of Kubernetes assets to deploy
 #export K8S_VER=v1.1.8
-export K8S_VER=v1.2.0-beta.1
+export K8S_VER=v1.2.0
 
 # The CIDR network to use for pod IPs.
 # Each pod launched in the cluster will be assigned an IP out of this range.
@@ -720,58 +720,59 @@ WantedBy=sockets.target
 EOF
     }
 
-#Add in kube-ui templates
-    local TEMPLATE=/srv/kubernetes/manifests/kubeui-rc.json
+#Kubernetes Dashboard Addon
+    local TEMPLATE=/srv/kubernetes/manifests/dashboard-controller.json
     [ -f $TEMPLATE ] || {
-        echo "TEMPLATE: $TEMPLATE"
-        mkdir -p $(dirname $TEMPLATE)
-        cat << EOF > $TEMPLATE
+       echo "TEMPLATE: $TEMPLATE"
+       mkdir -p $(dirname $TEMPLATE)
+       cat << EOF > $TEMPLATE
 {
   "apiVersion": "v1",
   "kind": "ReplicationController",
   "metadata": {
     "labels": {
-      "k8s-app": "kube-ui",
-      "kubernetes.io/cluster-service": "true",
-      "version": "v4"
+      "k8s-app": "kubernetes-dashboard",
+      "kubernetes.io/cluster-service": "true"
     },
-    "name": "kube-ui-v4",
+    "name": "kubernetes-dashboard-v1.0.0",
     "namespace": "kube-system"
   },
   "spec": {
     "replicas": 1,
     "selector": {
-      "k8s-app": "kube-ui",
-      "version": "v4"
+      "k8s-app": "kubernetes-dashboard"
     },
     "template": {
       "metadata": {
         "labels": {
-          "k8s-app": "kube-ui",
-          "kubernetes.io/cluster-service": "true",
-          "version": "v4"
+          "k8s-app": "kubernetes-dashboard",
+          "kubernetes.io/cluster-service": "true"
         }
       },
       "spec": {
         "containers": [
           {
-            "image": "gcr.io/google_containers/kube-ui:v4",
+            "image": "gcr.io/google_containers/kubernetes-dashboard-amd64:v1.0.0",
             "livenessProbe": {
               "httpGet": {
                 "path": "/",
-                "port": 8080
+                "port": 9090
               },
               "initialDelaySeconds": 30,
-              "timeoutSeconds": 5
+              "timeoutSeconds": 30
             },
-            "name": "kube-ui",
+            "name": "kubernetes-dashboard",
             "ports": [
               {
-                "containerPort": 8080
+                "containerPort": 9090
               }
             ],
             "resources": {
               "limits": {
+                "cpu": "100m",
+                "memory": "50Mi"
+              },
+              "requests": {
                 "cpu": "100m",
                 "memory": "50Mi"
               }
@@ -784,33 +785,32 @@ EOF
 }
 EOF
     }
-    local TEMPLATE=/srv/kubernetes/manifests/kubeui-svc.json
+    local TEMPLATE=/srv/kubernetes/manifests/dashboard-service.json
     [ -f $TEMPLATE ] || {
-        echo "TEMPLATE: $TEMPLATE"
-        mkdir -p $(dirname $TEMPLATE)
-        cat << EOF > $TEMPLATE
+       echo "TEMPLATE: $TEMPLATE"
+       mkdir -p $(dirname $TEMPLATE)
+       cat << EOF > $TEMPLATE
 {
   "apiVersion": "v1",
   "kind": "Service",
   "metadata": {
-    "name": "kube-ui",
-    "namespace": "kube-system",
     "labels": {
-      "k8s-app": "kube-ui",
-      "kubernetes.io/cluster-service": "true",
-      "kubernetes.io/name": "KubeUI"
-    }
+      "k8s-app": "kubernetes-dashboard",
+      "kubernetes.io/cluster-service": "true"
+    },
+    "name": "kubernetes-dashboard",
+    "namespace": "kube-system"
   },
   "spec": {
-    "selector": {
-      "k8s-app": "kube-ui"
-    },
     "ports": [
       {
         "port": 80,
-        "targetPort": 8080
+        "targetPort": 9090
       }
-    ]
+    ],
+    "selector": {
+      "k8s-app": "kubernetes-dashboard"
+    }
   }
 }
 EOF
@@ -833,9 +833,9 @@ function start_addons {
     curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/influxdb-rc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
     curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/heapster-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
     curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/influxdb-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
-    echo "K8s: UI addon"
-    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kubeui-rc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
-    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/kubeui-svc.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
+    echo "K8s: Dashboard addon"
+    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/dashboard-controller.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/replicationcontrollers" > /dev/null
+    curl --silent -H "Content-Type: application/json" -XPOST -d"$(cat /srv/kubernetes/manifests/dashboard-service.json)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
 }
 
 #Local Docker Registry
