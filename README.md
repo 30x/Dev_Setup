@@ -36,7 +36,8 @@ Dev-Setup
 ```kubectl``` is the primary command you will use to interact with your Kubernetes cluster. You should ensure that this is command is in your path. To do this run the following commands:
 
 ```sh
-brew install kubernetes-cli
+wget https://storage.googleapis.com/kubernetes-release/release/v1.2.0-beta.1/bin/darwin/amd64/kubectl
+mv kubectl /usr/local/bin
 ```  
 At this point you should have a fully functioning Kubernetes cluster accesible through the ```kubectl``` command. 
 
