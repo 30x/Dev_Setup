@@ -12,7 +12,7 @@ From your development directory run the following commands.
 
 ```sh
 git clone git@github.com:30x/Dev_Setup.git
-cd Dev_Setup/Single-Node
+cd Dev_Setup
 vagrant up
 ```
 These commands will spin up a single node Kubernetes cluster. 
@@ -25,6 +25,7 @@ Dev-Setup
 ├── README.md
 ├── Vagrantfile
 ├── ctl-setup.sh
+├── docker-setup.sh
 ├── kubeconfig
 ├── scripts
 ├── shared
@@ -44,9 +45,10 @@ At this point you should have a fully functioning Kubernetes cluster accesible t
 
 ###**Docker:**
 
-The VMs docker port is exposed over tcp by default. To remotely access it simply set your `DOCKER_HOST` environment variable with the following command.
+The VMs docker port is exposed over tcp by default. To remotely access it run the following command which will properly configure your environment variables.
 
 ```sh
 source docker-setup.sh
 ```
+
 If you plan to use this VM as your default development environment it is recommended that you add the above command to your `.bash_profile` or `.zshrc`.
