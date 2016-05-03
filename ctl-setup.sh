@@ -10,9 +10,11 @@ until $(kubectl cluster-info &> /dev/null); do
     sleep 1
 done
 
-echo "Kubernetes cluster is up."
-
 #Going to force "kubectl proxy --port=8080 &" to be run at start so that we can hit the cluster
 kubectl proxy --port=8080 &
 
-#Export DOCKER_HOST so that we can access remote docker
+#Create admin serviceaccount in default namespace
+kubectl create serviceaccount admin
+
+echo "Kubernetes cluster is up."
+

@@ -6,7 +6,7 @@ export ETCD_ENDPOINTS="http://127.0.0.1:2379"
 
 # Specify the version (vX.Y.Z) of Kubernetes assets to deploy
 #export K8S_VER=v1.1.8
-export K8S_VER=v1.2.0
+export K8S_VER=v1.2.3
 
 # The CIDR network to use for pod IPs.
 # Each pod launched in the cluster will be assigned an IP out of this range.
@@ -76,6 +76,7 @@ function init_templates {
         cat << EOF > $TEMPLATE
 [Service]
 ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests
+ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/policies
 ExecStart=/usr/bin/kubelet \
   --api_servers=http://127.0.0.1:8080 \
   --register-node=true \
@@ -91,6 +92,25 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
     }
+
+#Authorization Plugin File
+    local TEMPLATE=/etc/kubernetes/policies/auth-policy.json
+    [ -f $TEMPLATE ] || {
+      echo "TEMPLATE: $TEMPLATE"
+      mkdir -p $(dirname $TEMPLATE)
+      cat << EOF > $TEMPLATE
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"*",   "nonResourcePath": "*", "namespace": "*", "resource": "*", "readonly": true}}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"kube-admin",      "namespace": "*",   "resource": "*",         "apiGroup": "*"     }}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"system:serviceaccount:default:admin",      "namespace": "*",   "resource": "*",         "apiGroup": "*"     }}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"scheduler",       "namespace": "*",   "resource": "pods",         "readonly": true }}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"scheduler",       "namespace": "*",   "resource": "bindings"                       }}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"kubelet",         "namespace": "*",   "resource": "pods",         "readonly": true }}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"kubelet",         "namespace": "*",   "resource": "services",     "readonly": true }}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"kubelet",         "namespace": "*",   "resource": "endpoints",    "readonly": true }}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy", "spec": {"user":"kubelet",         "namespace": "*",   "resource": "events"                         }}
+EOF
+    }
+
 
     local TEMPLATE=/etc/kubernetes/manifests/kube-proxy.yaml
     [ -f $TEMPLATE ] || {
@@ -155,6 +175,8 @@ spec:
     - --client-ca-file=/etc/kubernetes/ssl/ca.pem
     - --service-account-key-file=/etc/kubernetes/ssl/apiserver-key.pem
     - --runtime-config=extensions/v1beta1/deployments=true,extensions/v1beta1/daemonsets=true
+    - --authorization-mode=ABAC
+    - --authorization-policy-file=/etc/kubernetes/policies/auth-policy.json
     ports:
     - containerPort: 443
       hostPort: 443
@@ -169,6 +191,9 @@ spec:
     - mountPath: /etc/ssl/certs
       name: ssl-certs-host
       readOnly: true
+    - mountPath: /etc/kubernetes/policies
+      name: auth-policies
+      readOnly: true
   volumes:
   - hostPath:
       path: /etc/kubernetes/ssl
@@ -176,6 +201,10 @@ spec:
   - hostPath:
       path: /usr/share/ca-certificates
     name: ssl-certs-host
+  - hostPath:
+      path: /etc/kubernetes/policies
+    name: auth-policies
+
 EOF
     }
 
@@ -734,7 +763,7 @@ EOF
       "k8s-app": "kubernetes-dashboard",
       "kubernetes.io/cluster-service": "true"
     },
-    "name": "kubernetes-dashboard-v1.0.0",
+    "name": "kubernetes-dashboard-v1.0.1",
     "namespace": "kube-system"
   },
   "spec": {
@@ -752,7 +781,7 @@ EOF
       "spec": {
         "containers": [
           {
-            "image": "gcr.io/google_containers/kubernetes-dashboard-amd64:v1.0.0",
+            "image": "gcr.io/google_containers/kubernetes-dashboard-amd64:v1.0.1",
             "livenessProbe": {
               "httpGet": {
                 "path": "/",
@@ -816,7 +845,6 @@ EOF
 EOF
     }
 }
-
 function start_addons {
     echo "Waiting for Kubernetes API..."
     until curl --silent "http://127.0.0.1:8080/version"
