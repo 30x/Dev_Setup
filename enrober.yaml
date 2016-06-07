@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: enrober
+  labels:
+    name: enrober
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: enrober
+  template:
+    metadata:
+      labels:
+        name: enrober
+        routable: "true"
+      annotations:
+        privateHosts: "test.k8s.local"
+        privatePaths: "9000:/beeswax/deploy"
+        publicHosts: "test.k8s.local"
+        publicPaths: "9000:/beeswax/deploy"
+    spec:
+      containers:
+      - name: enrober
+        image: thirtyx/enrober:v0.1.4
+        imagePullPolicy: Always
+        env:
+          - name: DEPLOY_STATE
+            value: "PROD"
+        ports:
+          - containerPort: 9000
+

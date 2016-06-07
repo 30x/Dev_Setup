@@ -13,8 +13,14 @@ done
 #Going to force "kubectl proxy --port=8080 &" to be run at start so that we can hit the cluster
 kubectl proxy --port=8080 &
 
-#Create admin serviceaccount in default namespace
-kubectl create serviceaccount admin
+#Create Apigee namespace
+kubectl create ns apigee
+
+#Create k8s-router
+kubectl create -f k8s-router.yaml --namespace=apigee
+
+#Create enrober
+kubectl create -f enrober.yaml --namespace=apigee
 
 echo "Kubernetes cluster is up."
 

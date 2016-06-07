@@ -7,7 +7,7 @@
 > Install Vagrant Triggers from a terminal with `vagrant plugin install vagrant-triggers`  
 > Install the latest version of Virtual Box from [here](https://www.virtualbox.org/wiki/Downloads)  
 
-####**Setup:**
+##**Setup:**
 From your development directory run the following commands.
 
 ```sh
@@ -32,18 +32,18 @@ Dev-Setup
 └── user-data
 ```
 
-####**Kubectl:**
+##**Kubectl:**
 
 ```kubectl``` is the primary command you will use to interact with your Kubernetes cluster. You should ensure that this is command is in your path. To do this run the following commands:
 
 ```sh
-wget https://storage.googleapis.com/kubernetes-release/release/v1.2.0/bin/darwin/amd64/kubectl
+wget https://storage.googleapis.com/kubernetes-release/release/v1.2.3/bin/darwin/amd64/kubectl
 chmod 755 kubectl
 mv kubectl /usr/local/bin
 ```  
 At this point you should have a fully functioning Kubernetes cluster accesible through the ```kubectl``` command.
 
-###**Docker:**
+##**Docker:**
 
 The VMs docker port is exposed over tcp by default. To remotely access it run the following command which will properly configure your environment variables.
 
@@ -51,13 +51,23 @@ The VMs docker port is exposed over tcp by default. To remotely access it run th
 source docker-setup.sh
 ```
 
-If you plan to use this VM as your default development environment it is recommended that you add the above command to your `.bash_profile` or `.zshrc`.
+If you plan to use this VM as your default development environment it is recommended that you add the following command to your `.bash_profile` or `.zshrc`. 
 
+>Assuming you cloned `Dev_Setup` into your root directory.
 
-##**Permissions:**
+```
+source ~/Dev_Setup/docker-setup.sh
+```
 
-By default all users only have read only access to the kubernetes api server. Therea are two users with elevated permissions.
+##**Hackathon Specifics:**
 
-The `kube-admin` user which is the default for `kubectl` has write access to all resources.
+For use during the hackathon you will want to configure your systems `/etc/hosts` file so that you can locally access your pods that are being routed with the [`30x/k8s-pods-ingress`](https://github.com/30x/k8s-pods-ingress). 
 
-The `admin` service account in the default namespace has write access to all resources.
+Add the following line to your `/etc/hosts` file:
+
+```
+#Local K8s Cluster
+172.17.4.99 test.k8s.local
+```
+
+When deploying to the local vagrant environment make your pods `publicHost` and `privateHost` annotations `test.k8s.local`. They will then be reachable from your local machine at that address. 
