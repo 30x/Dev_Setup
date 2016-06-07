@@ -32,6 +32,9 @@ Dev-Setup
 └── user-data
 ```
 
+
+>**Please note that cluster setup can take some time and things may run slowly for the first 10 minutes or so.**
+
 ##**Kubectl:**
 
 ```kubectl``` is the primary command you will use to interact with your Kubernetes cluster. You should ensure that this is command is in your path. To do this run the following commands:
