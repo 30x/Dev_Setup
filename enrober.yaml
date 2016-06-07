@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: enrober
-        image: thirtyx/enrober:v0.1.4
+        image: thirtyx/enrober:v0.1.5
         imagePullPolicy: Always
         env:
           - name: DEPLOY_STATE
