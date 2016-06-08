@@ -13,9 +13,9 @@ fi
 usage_warning() {
   	
 	echo -e "
-	${BOLD}'get_token'${NONE} utility script generates user access/refresh tokens using the OAuth 2.0 'client_credentials' grant flow.
+	${BOLD}'get_token'${NONE} utility script generates user access/refresh tokens using the OAuth 2.0 'password' grant flow.
         
-	${GREEN}Usage: get_token -u {USER_EMAIL}:{PASSWORD} -m {MFACODE}${NONE}
+	${GREEN}Usage: get_token OR get_token -u {USER_EMAIL}:{PASSWORD} -m {MFACODE}${NONE}
         	
         PRE REQUISITE: 
 	Please export CLIENT's base64 encoded value, as CLIENT_AUTH variable e.g. ${BOLD} export CLIENT_AUTH=ZWRnZWNsaTplZGdlY2xpc2VjcmV0 ${NONE}
@@ -43,16 +43,11 @@ while test $# -gt 0; do
           -u)
              if [ -n "$2" ]; then
                 user_info=$2
-             else
-                echo -e "${RED} -u requires a non-empty option argument. For usage details use help [-h]\n${NONE}"
              fi
              ;;
           -m)
              if [ -n "$2" ]; then
                 mfa_token=$2
-             else
-                echo $2
-                echo -e "${RED} -m requires a non-empty option argument. For usage details use help [-h]\n${NONE}"
              fi
              ;;
 
@@ -78,31 +73,32 @@ done
 #  6. Stripe out the user option
 #  7. make the original management call with new access token in bearer header#
 #
-#  	Usage
-#  	1) ./get_token -u foobar@apigee.com:Apigee123 -m 123456 -v
+#	Usage
+#	1) ./get_token
+#
+#  	2) ./get_token -u foobar@apigee.com:Apigee123 -m 123456 -v
 #                                                   `
-#  	2) ./get_token -u foobar@apigee.com -v
+#  	3) ./get_token -u foobar@apigee.com -v
 #
 #
 
 
 user_validation() {
-    ######  2. Extract -u option and get username and password from the argument ######
-    if [ -z "$user_info" ]; then
-        echo "**Missing**: -u option. Please refer help [-h] for usage details.";
-        echo
-        exit 1
-    fi
 
-    arr=(`echo $user_info | tr ':' ' '`)
-    userName=${arr[0]}
-    password=${arr[1]}
-
-    #echo "userName : $userName, password: $password"
-    ###### 3. Check for existence of password else prompt user to enter the password. ######
-    if [ -z "$password" ]; then
-        echo "Enter the password for user '$userName'"
-        read -s password
+    ###### Prompt for username ######
+    if [[ !(-z "$user_info") ]]; then
+	arr=(`echo $user_info | tr ':' ' '`)
+    	userName=${arr[0]}
+    	password=${arr[1]}
+    else
+    	echo "Enter username:"
+    	read -t 30 userName
+    	if [ -z "$userName" ]; then
+		exit -1
+    	fi
+    	###### Prompt for password ######
+    	echo "Enter the password for user '$userName'"
+    	read -t 30 -s password
     fi
 
     ###### 4. Construct the query param data to get the access token ######
@@ -117,6 +113,11 @@ user_validation() {
 
 mfa_validation() {
     re="[0-9]+"
+    if [[ -z "$mfa_token" ]]; then
+    	###### Prompt for username ######
+    	echo "Enter the six-digit code if '$userName' is MFA enabled or press ENTER:"
+    	read -t 30 mfa_token
+    fi
     if [[ !(-z "$mfa_token") && (!($mfa_token =~ $re) || !(${#mfa_token} == 6)) ]]; then
        echo "**Invalid mfa code**";
        echo
@@ -183,14 +184,13 @@ generate_token() {
     	access_token_file="access_token.dat"
     	file="$access_token_file"
 
-    	user_validation
-
-	mfa_validation
-
     	if [ -f "$file" ]
     	then
         	ACCESS_TOKEN_CONTENT=`cat $access_token_file`
         	if [[ -z "$ACCESS_TOKEN_CONTENT" ]]; then
+			
+    			user_validation
+			mfa_validation
 
             		# Get sso_server_url
 	        	get_sso_server
@@ -212,74 +212,61 @@ generate_token() {
             		USER_EMAIL=`echo $JSON | sed -E 's/.*email\"\:\"([^\"]+)\",.*/\1/'`
             		#echo "Given user : $userName, Existing user :  $USER_EMAIL"
 
-            		if [[ $USER_EMAIL == $userName ]]
-            		then
-                		if [[ $debug -eq 1 ]]; then
-	    	        		echo -e "${LIGHT_BLUE} User's access token already exists : $EXISTING_ACCESS_TOKEN${NONE}\n"
-	            		fi
+                	if [[ $debug -eq 1 ]]; then
+	    	        	echo -e "${LIGHT_BLUE} User's access token already exists : $EXISTING_ACCESS_TOKEN${NONE}\n"
+	            	fi
 
-                    		EXPIRES_ON=`echo $JSON | sed -E 's/.*exp\"\:([^\"]+)\,.*/\1/'`
+                    	EXPIRES_ON=`echo $JSON | sed -E 's/.*exp\"\:([^\"]+)\,.*/\1/'`
 
-                    		#ISSUED_AT=`echo $JSON | sed -E 's/.*iat\"\:([^\"]+)\,.*/\1/'`
+                    	#ISSUED_AT=`echo $JSON | sed -E 's/.*iat\"\:([^\"]+)\,.*/\1/'`
 
-                    		CURRENT_DATE=`date "+%s"`
+                    	CURRENT_DATE=`date "+%s"`
 
-                    		#echo "Current time is : $CURRENT_DATE and token expires by : $EXPIRES_ON"
+                    	#echo "Current time is : $CURRENT_DATE and token expires by : $EXPIRES_ON"
 
-                    		EXISTING_ACCESS_TOKEN=`echo $ACCESS_TOKEN_CONTENT | sed -E 's/.*access_token\"\:\"([^\"]+)\".*/\1/'`
+                    	EXISTING_ACCESS_TOKEN=`echo $ACCESS_TOKEN_CONTENT | sed -E 's/.*access_token\"\:\"([^\"]+)\".*/\1/'`
 
-                    		if [ `expr $CURRENT_DATE - $EXPIRES_ON` -gt 0 ]
-                    		then
-                        		REFRESH_TOKEN=`echo $ACCESS_TOKEN_CONTENT | sed -E 's/.*refresh_token\"\:\"([^\"]+)\".*/\1/'`
-                        		if [[ $debug -eq 1 ]]; then
-                            			echo -e "${LIGHT_BLUE}Access token is expired, Use the refresh token to get new token${NONE}\n"
-                        		fi
+                    	if [ `expr $CURRENT_DATE - $EXPIRES_ON` -gt 0 ]
+                    	then
+                        	REFRESH_TOKEN=`echo $ACCESS_TOKEN_CONTENT | sed -E 's/.*refresh_token\"\:\"([^\"]+)\".*/\1/'`
+                        	if [[ $debug -eq 1 ]]; then
+                            		echo -e "${LIGHT_BLUE}Access token is expired, Use the refresh token to get new token${NONE}\n"
+                        	fi
 
-                        		# Get sso_server_url
-                        		get_sso_server
-                        		returnValue=$?
-                        		if [[ returnValue -eq 1 ]]; then
-                            			ACCESS_TOKEN_CONTENT=`curl -s -i -H "content-type:application/x-www-form-urlencoded;charset=utf-8" -H "accept: application/json;charset=utf-8" -H "authorization: Basic $CLIENT_AUTH" $SSO_URL -d "grant_type=refresh_token&refresh_token=$REFRESH_TOKEN"`
-                            			if [[ $ACCESS_TOKEN_CONTENT == *"HTTP/1.1 200 OK"* ]]
-                            			then
-                                			echo "$ACCESS_TOKEN_CONTENT" > "$access_token_file"
-                                			NEW_ACCESS_TOKEN=`echo $ACCESS_TOKEN_CONTENT | sed -E 's/.*access_token\"\:\"([^\"]+)\".*/\1/'`
-                                			if [[ $debug -eq 1 ]]; then
-                                    				echo -e "${LIGHT_BLUE}Got the new access token using refresh token${NONE}\n"
-                                			fi
-                                			VALID_TOKEN=$NEW_ACCESS_TOKEN
-                            			else
-                                			if [[ $debug -eq 1 ]]; then
-                                    				echo -e "${LIGHT_BLUE}Refresh token has expired, Getting brand new access token${NONE}\n"
-                                			fi
-                                			# generating brand new token
-                                			get_new_access_token
-                            			fi
-                        		fi
-                    		else
-                        		if [[ $debug -eq 1 ]]; then
-                            			echo -e "${LIGHT_BLUE}Existing access token is still valid${NONE}\n"
-                        		fi
-                        		VALID_TOKEN=$EXISTING_ACCESS_TOKEN
-                    		fi
-            		else
-            		    rm access_token.dat valid_token.dat
-
-                		if [[ $debug -eq 1 ]]; then
-                    			echo -e "${LIGHT_BLUE}Existing access token does not belongs to the given User ${userName} \n"
-                		fi
-
-                		# Get sso_server_url
-	            		get_sso_server
-	            		returnValue=$?
-	            		if [[ returnValue -eq 1 ]]; then
-        	        		# generating brand new token
-        	        		get_new_access_token
-                		fi
-            	    fi
+                        	# Get sso_server_url
+                        	get_sso_server
+                        	returnValue=$?
+                        	if [[ returnValue -eq 1 ]]; then
+                            		ACCESS_TOKEN_CONTENT=`curl -s -i -H "content-type:application/x-www-form-urlencoded;charset=utf-8" -H "accept: application/json;charset=utf-8" -H "authorization: Basic $CLIENT_AUTH" $SSO_URL -d "grant_type=refresh_token&refresh_token=$REFRESH_TOKEN"`
+                            		if [[ $ACCESS_TOKEN_CONTENT == *"HTTP/1.1 200 OK"* ]]
+                            		then
+                                		echo "$ACCESS_TOKEN_CONTENT" > "$access_token_file"
+                                		NEW_ACCESS_TOKEN=`echo $ACCESS_TOKEN_CONTENT | sed -E 's/.*access_token\"\:\"([^\"]+)\".*/\1/'`
+                                		if [[ $debug -eq 1 ]]; then
+                                    			echo -e "${LIGHT_BLUE}Got the new access token using refresh token${NONE}\n"
+                                		fi
+                                		VALID_TOKEN=$NEW_ACCESS_TOKEN
+                            		else
+                                		if [[ $debug -eq 1 ]]; then
+                                    			echo -e "${LIGHT_BLUE}Refresh token has expired, Getting brand new access token${NONE}\n"
+                                		fi
+                                		# generating brand new token
+    						user_validation
+						mfa_validation
+                                		get_new_access_token
+                            		fi
+                        	fi
+                    	else
+                        	if [[ $debug -eq 1 ]]; then
+                            		echo -e "${LIGHT_BLUE}Existing access token is still valid${NONE}\n"
+                        	fi
+                        	VALID_TOKEN=$EXISTING_ACCESS_TOKEN
+                    	fi
         	fi
     	else
         	# Get sso_server_url
+    		user_validation
+		mfa_validation
 	    	get_sso_server
 	    	returnValue=$?
 	    	if [[ returnValue -eq 1 ]]; then
