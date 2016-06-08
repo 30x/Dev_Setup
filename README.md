@@ -1,3 +1,4 @@
+#Please ensure you are using the hackathon branch for the internal hackathon
 # Kubernetes and Vagrant Single-Node Setup
 
 ##Forked from https://github.com/coreos/coreos-kubernetes
