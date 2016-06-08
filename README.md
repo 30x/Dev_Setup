@@ -160,6 +160,7 @@ export APIGEE_PASSWORD="{YOUR APIGEE PASSWORD}"
 Set your apigee token
 
 ```
+export SSO_LOGIN_URL=https://login.e2e.apigee.net
 export APIGEE_TOKEN=$(./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD})
 ```
 
