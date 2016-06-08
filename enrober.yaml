@@ -22,11 +22,13 @@ spec:
     spec:
       containers:
       - name: enrober
-        image: thirtyx/enrober:v0.1.5
+        image: thirtyx/enrober:v0.1.6
         imagePullPolicy: Always
         env:
           - name: DEPLOY_STATE
             value: "PROD"
+          - name: JWTTOKENIMPL
+            value: "test"
         ports:
           - containerPort: 9000
 
