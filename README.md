@@ -7,6 +7,11 @@
 > Install Vagrant Triggers from a terminal with `vagrant plugin install vagrant-triggers`  
 > Install the latest version of Virtual Box from [here](https://www.virtualbox.org/wiki/Downloads)  
 
+Make sure you are using the hackathon branch!
+```
+git checkout hackathon
+```
+
 ####**Kubectl:**
 
 ```kubectl``` is the primary command you will use to interact with your Kubernetes cluster. You should ensure that this is command is in your path. To do this run the following commands:
