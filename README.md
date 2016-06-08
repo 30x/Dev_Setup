@@ -29,6 +29,7 @@ From your development directory run the following commands.
 ```sh
 git clone git@github.com:30x/Dev_Setup.git
 cd Dev_Setup
+git checkout hackathon
 vagrant up
 ```
 These commands will spin up a single node Kubernetes cluster. 
@@ -188,7 +189,7 @@ Now we can start making calls to the `enrober` api.
 First create a new environment.
 
 ```
-curl -X POST -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X POST -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
     "environmentName": "env1",
     "hostNames": ["host1"]
     }' \
@@ -198,7 +199,7 @@ curl -X POST -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
 Create a new deployment in the above environment.
 
 ```
-curl -X POST -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X POST -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
     "deploymentName": "dep1",
     "publicHosts": "test.k8s.local",
     "privateHosts": "test.k8s.local",
@@ -238,7 +239,7 @@ curl -X POST -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
 Update the previous deployment.
 
 ```
-curl -X PATCH -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X PATCH -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
     "replicas": 1,
     "pts":
         {
@@ -275,7 +276,7 @@ curl -X PATCH -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
 Scale the previous deployment.
 
 ```
-curl -X PATCH -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X PATCH -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
     "replicas": 3
 }' \
 "test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1/deployments/dep1"
@@ -284,7 +285,7 @@ curl -X PATCH -H "Authorization: Bearer ${APIGEE_TOKEN}" -d '{
 To access the deployment you need to know the api key. You can get this with the following curl command, you will need to extract the publicSecret.
 
 ```
-curl -X GET -H "Authorization: Bearer ${APIGEE_TOKEN}" test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X GET -H "Authorization: Bearer ${APIGEE_TOKEN}" test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1
 ```
 
 Export the publicSecret as an environment variable.
@@ -296,18 +297,18 @@ export PUBLIC_ROUTING_KEY="{key value}"
 Access the deployment. You should see the default nginx response.
 
 ```
-curl -X GET -H "X-ROUTING-API-KEY: $PUBLIC_ROUTING_KEY" "http://test.k8s.local/"
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X GET -H "X-ROUTING-API-KEY: $PUBLIC_ROUTING_KEY" "http://test.k8s.local/"
 ```
 
 Delete the deployment.
 
 ```
-curl -X DELETE -H "Authorization: Bearer ${APIGEE_TOKEN}" \
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X DELETE -H "Authorization: Bearer ${APIGEE_TOKEN}" \
 "test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1/deployments/dep1"
 ```
 
 Delete the environment.
 
 ```
-curl -X DELETE -H "Authorization: Bearer ${APIGEE_TOKEN}" "test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1"
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X DELETE -H "Authorization: Bearer ${APIGEE_TOKEN}" "test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1"
 ```
