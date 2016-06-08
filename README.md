@@ -166,8 +166,7 @@ export APIGEE_PASSWORD="{YOUR APIGEE PASSWORD}"
 Set your apigee token
 
 ```
-export SSO_LOGIN_URL=https://login.e2e.apigee.net
-export APIGEE_TOKEN=$(./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD})
+export APIGEE_TOKEN=$(SSO_LOGIN_URL=https://login.e2e.apigee.net ./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD})
 ```
 
 >Note that the Apigee tokens roll frequently so you may have to reset your token by running the above command again.
