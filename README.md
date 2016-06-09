@@ -2,6 +2,10 @@
 
 ##Forked from https://github.com/coreos/coreos-kubernetes
 
+####Common Issues:
+
+-  If you get an error like `Error response from daemon: client is newer than server (client API version: 1.23, server API version: 1.22)`. Then run `export DOCKER_API_VERSION=1.22`. 
+
 ####**Prerequisites:** 
 > Install latest version >= 1.6.2 of Vagrant from [here](https://www.vagrantup.com/downloads.html)  
 > Install Vagrant Triggers from a terminal with `vagrant plugin install vagrant-triggers`  
