@@ -160,39 +160,25 @@ kubectl delete deployment nginx-deployment
 
 ###**Enrober Examples:**
 
-To use enrober we need to get a valid Apigee JWT
-
-```
-export APIGEE_USERNAME="{YOUR APIGEE EMAIL}"
-export APIGEE_PASSWORD="{YOUR APIGEE PASSWORD}"
-```
+For local testing we will be using dummy values. 
 
 Set your apigee token
 
 ```
-export APIGEE_TOKEN=$(SSO_LOGIN_URL=https://login.e2e.apigee.net ./get_token -u ${APIGEE_USERNAME}:${APIGEE_PASSWORD})
+export APIGEE_TOKEN=e30.e30.e30
 ```
 
->Note that the Apigee tokens roll frequently so you may have to reset your token by running the above command again.
-
-
-Now test you have a valid token. You should have a long JWT oAuth token
+Set your apigee org
 
 ```
-echo $APIGEE_TOKEN
-```
-
-Now we want to push an example build up. Note that you must be an org admin for this to work.
-
-```
-export APIGEE_ORG="{YOUR APIGEE ORG}"
+export APIGEE_ORG=local
 ```
 Now we can start making calls to the `enrober` api.
 
 First create a new environment.
 
 ```
-curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X POST -H "Authorization: Bearer e30.e30.e30" -d '{
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X POST -H "Authorization: Bearer $APIGEE_TOKEN" -d '{
     "environmentName": "env1",
     "hostNames": ["host1"]
     }' \
@@ -202,7 +188,7 @@ curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X POST -H 
 Create a new deployment in the above environment.
 
 ```
-curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X POST -H "Authorization: Bearer e30.e30.e30" -d '{
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X POST -H "Authorization: Bearer $APIGEE_TOKEN" -d '{
     "deploymentName": "dep1",
     "publicHosts": "test.k8s.local",
     "privateHosts": "test.k8s.local",
@@ -242,7 +228,7 @@ curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X POST -H 
 Update the previous deployment.
 
 ```
-curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X PATCH -H "Authorization: Bearer e30.e30.e30" -d '{
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X PATCH -H "Authorization: Bearer $APIGEE_TOKEN" -d '{
     "replicas": 1,
     "pts":
         {
@@ -279,7 +265,7 @@ curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X PATCH -H
 Scale the previous deployment.
 
 ```
-curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X PATCH -H "Authorization: Bearer e30.e30.e30" -d '{
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X PATCH -H "Authorization: Bearer $APIGEE_TOKEN" -d '{
     "replicas": 3
 }' \
 "test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1/deployments/dep1"
@@ -288,7 +274,7 @@ curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X PATCH -H
 To access the deployment you need to know the api key. You can get this with the following curl command, you will need to extract the publicSecret.
 
 ```
-curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X GET -H "Authorization: Bearer e30.e30.e30" test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X GET -H "Authorization: Bearer $APIGEE_TOKEN" test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1
 ```
 
 Export the publicSecret as an environment variable.
@@ -306,12 +292,12 @@ curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X GET -H "
 Delete the deployment.
 
 ```
-curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X DELETE -H "Authorization: Bearer e30.e30.e30" \
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X DELETE -H "Authorization: Bearer $APIGEE_TOKEN" \
 "test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1/deployments/dep1"
 ```
 
 Delete the environment.
 
 ```
-curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X DELETE -H "Authorization: Bearer e30.e30.e30" "test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1"
+curl -sL -w "responseCode:%{http_code} responseTime:%{time_total}\n" -X DELETE -H "Authorization: Bearer $APIGEE_TOKEN" "test.k8s.local/beeswax/deploy/api/v1/environmentGroups/$APIGEE_ORG/environments/env1"
 ```
