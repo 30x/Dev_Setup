@@ -1,4 +1,3 @@
-#Please ensure you are using the hackathon branch for the internal hackathon
 # Kubernetes and Vagrant Single-Node Setup
 
 ##Forked from https://github.com/coreos/coreos-kubernetes
@@ -53,12 +52,3 @@ source docker-setup.sh
 ```
 
 If you plan to use this VM as your default development environment it is recommended that you add the above command to your `.bash_profile` or `.zshrc`.
-
-
-##**Permissions:**
-
-By default all users only have read only access to the kubernetes api server. Therea are two users with elevated permissions.
-
-The `kube-admin` user which is the default for `kubectl` has write access to all resources.
-
-The `admin` service account in the default namespace has write access to all resources.
