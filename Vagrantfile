@@ -22,7 +22,7 @@ Vagrant.configure("2") do |config|
   config.ssh.insert_key = false
 
   config.vm.box = "coreos-alpha"
-  config.vm.box_version = ">= 766.0.0"
+  config.vm.box_version = "1032.1.0"
   config.vm.box_url = "http://alpha.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json"
 
   ["vmware_fusion", "vmware_workstation"].each do |vmware|
