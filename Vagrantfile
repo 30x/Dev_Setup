@@ -38,7 +38,7 @@ Vagrant.configure("2") do |config|
   config.vm.provider :virtualbox do |v|
     v.cpus = 1
     v.gui = false
-    v.memory = 1024
+    v.memory = 2048
 
     # On VirtualBox, we don't have guest additions or a functional vboxsf
     # in CoreOS, so tell Vagrant that so it can be smarter.
